@@ -1,0 +1,233 @@
+---
+title: "The offences in Dallas 2016"
+author: "Registration number: 2110374"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+### Don't delete this setup code chunk from your file
+knitr::opts_chunk$set(echo = FALSE,error=FALSE,warning = FALSE,message = FALSE)   ## DON'T ALTER THIS: this is to prevent printing the code in your "html" file.
+
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(leaflet)
+library(cowplot)
+
+data_use = read.csv("37-00049_UOF-P_2016_prepped.csv", header = TRUE)
+
+data_use = data_use[-1,]
+
+
+
+```
+### Introduction
+  This dataset is the details of the arrests and crimes in Dallas, Texas in the year 2016. The purpose of this report is to show the behaviour of the officer, racial equity, gender equity and security access of the people in the city. 
+
+```{r}
+my_data = data.frame(data_use$OFFICER_ID, 
+                     data_use$OFFICER_GENDER, 
+                     data_use$OFFICER_HIRE_DATE,
+                     data_use$OFFICER_YEARS_ON_FORCE,
+                     data_use$OFFICER_RACE,
+                     data_use$SUBJECT_RACE,
+                     data_use$SUBJECT_INJURY)
+
+data1 = my_data %>% distinct(data_use.OFFICER_ID, 
+                             data_use.OFFICER_HIRE_DATE, 
+                             data_use.OFFICER_GENDER,
+                             data_use.OFFICER_RACE,
+                             data_use.SUBJECT_RACE, 
+                             data_use.SUBJECT_INJURY, .keep_all = TRUE)
+
+colnames(data1) = c("Officer_ID", "Officer_Gender" ,"Officer_Hire_Date", "Officer_years_on_force" ,"Officer_Race", "SUBJECT_Race", "SUBJECT_Injury")
+
+race = ggplot(data1, aes(x = "", y = "", fill = Officer_Race)) + 
+  geom_bar(width = 1, stat="identity") + 
+  coord_polar("y", start=0) +
+  ggtitle("Race of officer") +
+  scale_fill_discrete(name="Officer Race") +
+  theme(plot.title = element_text(size=18, hjust = 0.5)) +
+  theme_bw()
+race
+
+```
+
+  The first thing this report would like to show is the equality of officers since Dallas is a city in Texas, US, therefore this cannot be denied that the indigenous people might be white people, the proportion of officers may be more partial toward the white people, but the ratio of other nationalities is in the nice direction since there are almost a half of other races as an officer, although in fact there should be a more balanced percentage which depends on the actual population as the US is the country with ethnic diversity.
+
+```{r}
+
+data_use$OFFICER_YEARS_ON_FORCE = as.factor(data_use$OFFICER_YEARS_ON_FORCE)
+
+data_use$OFFICER_YEARS_ON_FORCE = factor(data_use$OFFICER_YEARS_ON_FORCE, levels = c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10","11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36"))
+
+officer3 = ggplot(data_use, aes(OFFICER_YEARS_ON_FORCE)) + 
+  geom_bar(aes(fill = OFFICER_GENDER), alpha=0.5, position = "dodge") +
+  facet_grid(SUBJECT_INJURY ~ .) +
+  theme_bw() + xlab("Officer years on force") +
+  scale_fill_discrete(name="Officer Gender",
+                      breaks=c("Female", "Male"),
+                      labels=c("Female", "Male")) +
+  ggtitle("Subject injury causes by the officer gender and year of work") +
+  theme(plot.title = element_text(size=14),
+        axis.text.x = element_text(size=7, vjust = 0.5, hjust=1)) 
+
+ggplotly(officer3)
+```
+  The bar chart above illustrates the number of the subject’s injuries depending on the officer's gender and the years of work, it is obvious that most of the subjects did not receive an injury which means the officers rarely do the violence against the subject. The violent part might come from the defiance of the arrest since officers also receive the injury. Whilst the percentage of violence seems to have significantly reduced with age; the new generation of officers reduce the use of violence in arrests. The obvious problem that is still different is the gender of the officer; women seem to have lower rates of being an officer compared to men. There are some years when no women are present and from the graph, it is the 18th year of experience onwards. The thing is women might have less resistant to hazardous work and arresting criminals requires physical abilities. Welfare is also the problem in this case, officers with many years of work experience gradually declined significantly.
+
+
+```{r}
+hospi_1 = data_use %>% filter(data_use$OFFICER_INJURY == 'Yes')
+  
+hospi = ggplot(hospi_1, aes(OFFICER_INJURY)) +
+  geom_bar(aes(fill = OFFICER_GENDER), position = "dodge") +
+  facet_grid(OFFICER_HOSPITALIZATION ~ OFFICER_RACE) +
+  theme_bw() + ggtitle("Officier hospitalization depends on race and gender")
+
+ggplotly(hospi)
+
+```
+  The graph indicates the amount of injured officers who have taken a hospitalization; four-fifth of the officer did not have the proper treatment. Those injuries might be non-essential injuries, but the government should provide the appropriate welfare to the officer. This may be the reason for the reduction rate of the experienced officer. Although gender seems not to be a factor because each gender has the same percentage of treatment, there is a difference in the race of officers who receive the heal; black people have the highest ratio compared to others whereas Asians and others have non-treatments receiving. 
+```{r}
+oit = data.frame(data_use$OFFICER_GENDER, data_use$OFFICER_INJURY_TYPE)
+
+colnames(data1) = c("Officer_Gender", "Officer_injury_type")
+
+oit = data_use %>%
+  count(data_use$OFFICER_INJURY_TYPE) %>%
+  slice_max(n, n = 6)
+
+colnames(oit) = c("Officer_injury_type", "n")
+
+type_1 = ggplot(oit, aes(reorder(oit$Officer_injury_type, n, sum), n)) + 
+  geom_col(fill="#a1d99b") +
+  labs(x = "Injury Type",
+       y = "Number of Injury",
+       title = paste0("Officer injury type")) +
+  coord_flip() +
+  theme_bw()
+
+a2 = data_use %>%
+  count(data_use$SUBJECT_INJURY_TYPE) %>%
+  slice_max(n, n = 6)
+
+colnames(a2) = c("Subject_injury_type", "n")
+
+type_02 = ggplot(a2, aes(reorder(a2$Subject_injury_type , n, sum), n)) + 
+  geom_col(fill="#fee08b") + 
+  labs(x = "Injury Type",
+       y = "Number of Injury",
+       title = paste0("Subject injury type")) +
+  coord_flip() +
+  theme_bw()
+
+plot_grid(type_1, type_02)
+```
+
+
+
+
+
+  Most injuries have not been noted and visible; these might be the reason for untreated in most officers. In fact, many types of injuries were noted, but this report will show only 6 in most samples as the rest of them were a diminutive number. Compare to the subject’s injuries; the top-ranked injuries appear to be more serious injuries. Some points of view may conclude that the officer assaulted the subject, but the difference preparation is the important essence. Performing each mission may require rigorous preparation which means the chance of an accident will be less.
+
+```{r}
+data_use$SUBJECT_GENDER = ifelse (data_use$SUBJECT_GENDER == "NULL", "not specified", data_use$SUBJECT_GENDER)
+data_use$SUBJECT_GENDER = ifelse (data_use$SUBJECT_GENDER == "Unknown", "not specified", data_use$SUBJECT_GENDER)
+
+
+subject = ggplot(data_use, aes(SUBJECT_RACE)) + 
+  geom_bar(aes(fill = SUBJECT_GENDER), alpha=0.5, position = "dodge") +
+  facet_grid(SUBJECT_INJURY ~ .) +
+  ggtitle("Subject injury divided to race and gender") +
+  theme_bw() +
+  theme(axis.text.x=element_text(size = 8,hjust=1,vjust=0.5)) +
+  scale_fill_discrete(name="Subject Gender") +
+  xlab("Subject Race")
+
+ggplotly(subject)
+
+```
+  Black people appear to be the highest number followed by Hispanic and White people, whilst Asian and other races are likely to have a minute amount of arrested. It can be assumed that Dallas has a large ethnic population of White, Black and Hispanics; Asians and others are very few components. However, it also depends on the average population percentage and racial equity which led to poverty and offence. Referring to the source website, Dallas was the area where racial disparities exist therefore it is possible that applying for a job or living may be difficult for many people.
+
+  Even though there is racism, the rate of physical abuse was not too unreasonable and it probably happens from the impede apprehend and is expected to continue to reduce due to the age of the officer which is stated in the second paragraph.
+
+  Apart from the racism, gender is also clearly explicit, men have a higher proportion than women. This might be the reason for rather male officers than women since strength is the most important thing to operate efficient work despite gender inequality, the officer is not the career that women would be interested in as a top prior which may come from indirect gender inequality and cause by values.
+
+
+```{r}
+
+incident = data_use %>% filter(data_use$INCIDENT_REASON == 'Call for Cover' | 
+                                 data_use$INCIDENT_REASON == 'Service Call')
+
+subject1 = ggplot(incident, aes(INCIDENT_REASON)) + 
+  geom_bar(fill="#a1d99b") +
+  facet_grid(SUBJECT_WAS_ARRESTED ~ .) +
+  theme_bw() +
+  xlab("Incident Reason")
+
+
+```
+
+
+```{r}
+a1 = data_use %>%
+  count(data_use$INCIDENT_REASON) %>%
+  slice_max(n, n = 15)
+
+colnames(a1) = c("Incident_Reason", "n")
+
+offense = ggplot(a1, aes(reorder(a1$Incident_Reason, n, sum), n)) + 
+  geom_col(fill="#fee08b") + 
+  labs(x = "Incident Reason",
+       y = "Count",
+       title = paste0("Incident Reason")) +
+  coord_flip() +
+  theme_bw()
+
+
+plot_grid(subject1, offense)
+```
+
+  When talking about public safety and suffering suspicion, service call and call for cover is the most comfortable procedure for the populace. Despite that, a quarter of requests for help were not detained which can make victims scared and would reduce confidence in policing activity. In another view, a proper investigation is necessary since equality should be provided before being arrested.
+
+  The graph on the right side demonstrates incident reasons, the main cause was arrest by the officer which means the officer has high ability and tries to restore reliability and has been tracking the progress, but it is a small number compared to the service calls. The safety of people in Dallas also includes crossing the roads since people may use a pedestrian which is related to population confidence. 
+
+
+```{r}
+data_use$lat = as.numeric(data_use$LOCATION_LATITUDE)
+data_use$long = as.numeric(data_use$LOCATION_LONGITUDE)
+
+
+mypal = c("#a50026", "#d73027", "#f46d43", "#fdae61", "#fee090", "#ffffbf", "#d9ef8b",
+          "#a6d96a", "#66bd63", "#1a9850", "#006837", "#80cdc1", "#35978f", "#01665e",
+          "#003c30")
+
+data_use %>%
+  leaflet() %>%
+  addTiles() %>%
+  setView(-96.7970,32.7767,  zoom = 11) %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="APOWW",], popup = "APOWW", color = "#a50026") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="No Arrest",], popup = "No Arrest", color= "#d73027") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Public Intoxication",], popup = "Public Intoxication", color= "#f46d43") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Warrant/Hold",], popup = "Warrant/Hold", color= "#fdae61") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Assault/FV",], popup = "Assault/FV", color= "#fee090") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Assault/Public Servant",], popup = "Assault/Public Servant", color= "#ffffbf") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Evading Arrest",], popup = "Evading Arrest", color= "#d9ef8b") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Public Intoxication, Resisting Arrest",], popup = "Public Intoxication, Resisting Arrest", color= "#a6d96a") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Other Misdemeanor Arrest",], popup = "Other Misdemeanor Arrest", color= "#66bd63") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Assault",], popup = "Assault", color= "#1a9850") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Assault/FV, Resisting Arrest",], popup = "Assault/FV, Resisting Arrest", color= "#006837") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Burglary/Habitation",], popup = "Burglary/Habitation", color= "#80cdc1") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Other Felony Arrest",], popup = "Other Felony Arrest", color= "#35978f") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Disorderly Conduct",], popup = "Disorderly Conduct", color= "#01665e") %>%
+  addCircles(data = data_use[data_use$SUBJECT_OFFENSE=="Crim Trepass/Bldg/Prop",], popup = "Crim Trepass/Bldg/Prop", color= "#003c30") %>%
+  addLegend(position = "bottomleft", colors = mypal, labels = c("APOWW", "No Arrest", "Public Intoxication", "Warrant/Hold", "Assault/FV", "Assault/Public Servant", "Evading Arrest", "Public Intoxication, Resisting Arrest" , "Assault", "Other Misdemeanor Arrest", "Assault/FV, Resisting Arrest", "Burglary/Habitation", "Other Felony Arrest", "Crim Trespass/Bldg/Prop", "Disorderly Conduct"),
+            title = "Offence in Dallas")
+```
+
+  The map shown above shows an area that has offences which the centre of the town has the most incident as it gathered many facilities including downtown which is shopping centre where people reduce their vigilance. Offences are classified by colour and sorted by the top fifteen incidents. APOWW (Apprehension by Peace Officer Without Warrant) appears the most, but will spread around the city while public intoxication majority in the centre of the town; it could be because downtown is the place where people hang out and many restaurants are located there.
+  
+### Conclusion
+
+  The dataset indicates the security overview and it can be concluded that there are some communications problems there are some cases where people make security call, but turn out to been no arrests and have a nice sign of  reduce the use of violence by officers while there is still some racism, based on the information, most of the subjects were black. 
